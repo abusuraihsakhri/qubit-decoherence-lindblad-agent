@@ -133,15 +133,15 @@ async function runAudit() {
   const submit = byId("audit-form").querySelector('button[type="submit"]');
   submit.disabled = true;
   setMessage("audit-message", "Submitting to same-origin FastAPI server…");
-  const payload = {
-    task_id:byId("task_id").value,
-    target_identifier:byId("target_id").value,
-    primary_metric:readNumber("primary_metric"),
-    secondary_metric:readNumber("secondary_metric"),
-    status_descriptor:byId("status_descriptor").value,
-    is_critical_flag:byId("is_critical").checked
-  };
   try {
+    const payload = {
+      task_id:byId("task_id").value,
+      target_identifier:byId("target_id").value,
+      primary_metric:readNumber("primary_metric"),
+      secondary_metric:readNumber("secondary_metric"),
+      status_descriptor:byId("status_descriptor").value,
+      is_critical_flag:byId("is_critical").checked
+    };
     if (location.hostname.endsWith(".github.io")) {
       throw new Error("Static GitHub Pages does not run the audit API. Use the local FastAPI server.");
     }
