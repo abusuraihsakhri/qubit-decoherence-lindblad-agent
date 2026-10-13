@@ -169,17 +169,19 @@ async function runAudit() {
   }
 }
 
-byId("sim-form").addEventListener("submit", event => {
-  event.preventDefault();
-  calculate();
-});
-byId("audit-form").addEventListener("submit", event => {
-  event.preventDefault();
-  try {
+if (typeof document !== "undefined") {
+  byId("sim-form").addEventListener("submit", event => {
+    event.preventDefault();
+    calculate();
+  });
+  byId("audit-form").addEventListener("submit", event => {
+    event.preventDefault();
     void runAudit();
-  } catch (err) {
-    setMessage("audit-message", err.message, true);
-  }
-});
-byId("export-csv").addEventListener("click", downloadCSV);
-calculate();
+  });
+  byId("export-csv").addEventListener("click", downloadCSV);
+  calculate();
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { simulate };
+}
