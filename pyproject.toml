@@ -3,25 +3,33 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "qubit-decoherence-lindblad-engine"
-version = "2.0.0"
+name = "qubit-decoherence-lindblad-agent"
+version = "2.1.0"
 description = "Lindblad Master Equation T1 / T2 Qubit Decoherence Simulator"
 readme = "README.md"
-authors = [{ name = "Dr. Abu Suraih Sakhri", email = "abusuraih@example.com" }]
+authors = [{ name = "Dr. Abu Suraih Sakhri" }]
 license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Topic :: Security/Cryptography",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Mathematics",
 ]
 requires-python = ">=3.9"
 dependencies = []
 
 [project.scripts]
 qubit-decoherence-lindblad-engine = "lindblad_decoherence.cli:main"
+qubit-decoherence-lindblad-agent = "lindblad_decoherence.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/abusuraihsakhri/qubit-decoherence-lindblad-engine"
-Repository = "https://github.com/abusuraihsakhri/qubit-decoherence-lindblad-engine.git"
+Homepage = "https://github.com/abusuraihsakhri/qubit-decoherence-lindblad-agent"
+Repository = "https://github.com/abusuraihsakhri/qubit-decoherence-lindblad-agent.git"
+
+[project.optional-dependencies]
+server = ["fastapi>=0.110,<1", "uvicorn>=0.27,<1", "pydantic>=2,<3"]
+test = ["pytest>=8,<10", "pydantic>=2,<3"]
+
+[tool.setuptools.packages.find]
+include = ["agents", "lindblad_decoherence"]

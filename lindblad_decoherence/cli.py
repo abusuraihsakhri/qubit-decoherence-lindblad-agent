@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from .models import FrontierPayload
 from .agents import LindbladCoordinator
+from .physics import simulate_decoherence
 
 coordinator = LindbladCoordinator()
 
@@ -34,6 +35,17 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="qubit-decoherence-lindblad-agent", description="Lindblad Master Equation T1 / T2 Qubit Decoherence Simulator")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    # Physical single-qubit simulation
+    p_sim = subparsers.add_parser("simulate", help="Simulate GKSL T1/T2 decoherence")
+    p_sim.add_argument("--t1", type=float, required=True, help="Energy relaxation time")
+    p_sim.add_argument("--t2", type=float, required=True, help="Coherence decay time (must be <= 2*T1)")
+    p_sim.add_argument("--duration", type=float, required=True)
+    p_sim.add_argument("--steps", type=int, default=201)
+    p_sim.add_argument("--theta", type=float, default=1.5707963267948966, help="Initial polar angle (radians)")
+    p_sim.add_argument("--phi", type=float, default=0.0, help="Initial azimuth (radians)")
+    p_sim.add_argument("--omega", type=float, default=0.0, help="Qubit angular frequency (radians per time)")
+    p_sim.add_argument("--output", help="Optional CSV destination (otherwise JSON to stdout)")
+
     # Audit
     p_audit = subparsers.add_parser("audit", help="Run single task evaluation")
     p_audit.add_argument("--task-id", default="TASK-2026-001")
@@ -58,6 +70,24 @@ def main(argv=None):
     p_serve.add_argument("--port", type=int, default=8000)
 
     args = parser.parse_args(argv)
+
+    if args.command == "simulate":
+        try:
+            result = simulate_decoherence(
+                args.t1, args.t2, args.duration, args.steps,
+                args.theta, args.phi, args.omega,
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        if args.output:
+            with open(args.output, "w", encoding="utf-8", newline="") as stream:
+                writer = csv.DictWriter(stream, fieldnames=list(result["samples"][0]))
+                writer.writeheader()
+                writer.writerows(result["samples"])
+            print(f"Wrote {len(result['samples'])} time points to {args.output}")
+        else:
+            print(json.dumps(result, indent=2))
+        return 0
 
     if args.command == "audit":
         payload = FrontierPayload(
