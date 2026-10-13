@@ -3,6 +3,7 @@ import hmac
 import math
 import os
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
@@ -77,7 +78,7 @@ def api_chat(req: ChatRequest):
 
 
 @app.get("/api/audit/logs")
-def api_audit_logs(x_audit_api_key: str | None = Header(default=None)):
+def api_audit_logs(x_audit_api_key: Optional[str] = Header(default=None)):
     """Detailed audit metadata is never public without explicit configuration."""
     expected = os.getenv("AUDIT_API_KEY")
     if not expected or not x_audit_api_key or not hmac.compare_digest(expected, x_audit_api_key):
