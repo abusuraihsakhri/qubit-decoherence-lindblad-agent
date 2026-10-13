@@ -73,3 +73,28 @@ def test_nonfinite_payload_rejected():
         SystemTaskPayload(task_id="X", target_identifier="Q1", primary_metric=math.nan)
     with pytest.raises(ValidationError):
         SystemTaskPayload(task_id="X", target_identifier="Q1", primary_metric=1, secondary_metric=math.inf)
+
+
+def test_audit_hmac_prevents_field_repartition():
+    trail = AuditTrail(secret_key="unit-test-only")
+    trail.log("a|b", "c", "EVENT", {"count": 1})
+    assert trail.verify_integrity()
+    trail.logs[0]["actor"] = "a"
+    trail.logs[0]["actor_tier"] = "b|c"
+    assert not trail.verify_integrity()
+
+
+def test_physics_cli_csv_export(tmp_path):
+    import csv
+    from lindblad_decoherence.cli import main
+    destination = tmp_path / "trajectory.csv"
+    assert main([
+        "simulate", "--t1", "30", "--t2", "20",
+        "--duration", "10", "--steps", "3",
+        "--output", str(destination),
+    ]) == 0
+    with destination.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    assert len(rows) == 3
+    assert float(rows[0]["p_excited"]) == pytest.approx(0.5)
+    assert float(rows[-1]["p_excited"]) == pytest.approx(0.5 * math.exp(-10 / 30))
