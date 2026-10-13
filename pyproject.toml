@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qubit-decoherence-lindblad-agent"
-version = "2.0.0"
+version = "2.1.0"
 description = "Lindblad Master Equation T1 / T2 Qubit Decoherence Simulator"
 readme = "README.md"
-authors = [{ name = "Dr. Abu Suraih Sakhri", email = "abusuraih@example.com" }]
+authors = [{ name = "Dr. Abu Suraih Sakhri" }]
 license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -21,9 +21,10 @@ dependencies = []
 
 [project.scripts]
 qubit-decoherence-lindblad-engine = "lindblad_decoherence.cli:main"
+qubit-decoherence-lindblad-agent = "lindblad_decoherence.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/abusuraihsakhri/qubit-decoherence-lindblad-engine"
+Homepage = "https://github.com/abusuraihsakhri/qubit-decoherence-lindblad-agent"
 Repository = "https://github.com/abusuraihsakhri/qubit-decoherence-lindblad-agent.git"
 
 [project.optional-dependencies]
