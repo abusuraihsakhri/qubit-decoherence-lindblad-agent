@@ -1,185 +1,80 @@
 # Qubit Decoherence Lindblad Agent
 
-> **Domain:** Clinical Decision Support & Biomedical Computing / Quantum Physics  
-> **Reference Guidelines & Standards:** `Standard Clinical Formulations & ISO/IEC Quality Frameworks` / `Open Quantum Systems Theory`
+A reproducible single-qubit decoherence calculator, accompanied by an older rule-based threshold-audit workflow. The two are independent: **a threshold-audit alert is not a result from solving a Lindblad master equation**.
 
-<div align="center">
+## Browser simulator
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+Open `web/index.html` in a browser to use the simulator without installing Python or running a server. Enter relaxation time **T1**, coherence time **T2**, duration, initial Bloch-state angles, and optional angular frequency. The app calculates trajectories, plots excited-state probability, coherence magnitude, and purity, and exports CSV files.
 
-</div>
+- No network request is made during physics simulation; no input is uploaded.
+- The optional threshold-audit panel is **server-only**. On a static host, it clearly reports that the API is unavailable rather than inventing results.
+- The current public GitHub Pages deployment has not been verified. For now, open the HTML file directly or serve the app locally.
 
----
+## Physical model and limitations
 
-## 📖 What It Does
+The model solves the **analytic** GKSL master equation for a single qubit, with Hamiltonian `H = (omega/2) sigma_z`, amplitude damping jump `sqrt(1/T1) sigma_-`, and pure dephasing jump `sqrt(gamma_phi/2) sigma_z`, where:
 
-Qubit Decoherence Lindblad Agent is a multi-agent analytical platform that evaluates system tasks through specialized worker agents, producing consensus dossiers with cryptographic audit trails. The system includes:
+```text
+gamma_phi = 1/T2 - 1/(2*T1) >= 0
+P(|1>, t) = sin(theta/2)^2 * exp(-t/T1)
+|rho_01(t)| = |sin(theta)|/2 * exp(-t/T2)
+purity(t) = (1 + x(t)^2 + y(t)^2 + z(t)^2)/2
+```
 
-- **Clinical & Biomedical AI Module**: Multi-tier risk classification with automated action recommendations
-- **Quantum Physics Module**: Lindblad Master Equation T1/T2 qubit decoherence simulation
-- **Enrichment Suite**: Adaptive time-stepping solver, quantum process tomography, and calibration engines
+For complete positivity under these assumptions, `T1 > 0`, `T2 > 0`, and `T2 <= 2*T1`. The bath is at zero temperature, the dynamics are time-homogeneous and Markovian, and the initial state is `cos(theta/2)|0> + exp(i*phi)sin(theta/2)|1>`. Angles are in radians; times and inverse rates must share compatible units. This is **not** a general numerical multi-qubit Lindblad solver, hardware-calibrated simulator, process tomography implementation, or adaptive Runge–Kutta solver.
 
----
+## Installation
 
-## ⚙️ Key Capabilities & Algorithmic Modules
-
-- **Deterministic Calculation Engine**: Strict compliance with standard reference formulations and thresholds
-- **Risk & Urgency Classification**: Multi-tier categorization (ROUTINE, ELEVATED_RISK, CRITICAL_STAT_PANIC)
-- **Validation & Guardrails**: Rigorous input bounds checking and anomaly detection
-- **Multi-Agent Consensus**: InvariantQC, SafetyEscalation, ProtocolConformance, and specialized Lindblad agents
-- **Enrichment Engines**: 5 specialized engines for adaptive solving, implementation, testing, and quantum process tomography
-
----
-
-## 💻 Installation
+Python 3.9+ is supported for the physics engine. For local API and tests:
 
 ```bash
-# Clone the repository
 git clone https://github.com/abusuraihsakhri/qubit-decoherence-lindblad-agent.git
 cd qubit-decoherence-lindblad-agent
-
-# Install dependencies
-pip install fastapi uvicorn pydantic pytest
-
-# Optional: Set audit secret key for persistent audit integrity
-export AUDIT_SECRET_KEY="your-secure-random-key-here"
+python -m pip install -e ".[server,test]"
+python -m pytest -q
 ```
 
----
+The analytic physics module has no third-party runtime dependencies.
 
-## 🚀 CLI Quickstart & Usage
+## Physics CLI
 
-### 1. Single Task Evaluation
 ```bash
-python cli.py audit --task-id TASK-001 --target TARGET-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
+python -m lindblad_decoherence.cli simulate --t1 30 --t2 20 --duration 100 --steps 201
+python -m lindblad_decoherence.cli simulate --t1 30 --t2 20 --duration 100 --output trajectory.csv
 ```
 
-### 2. Interactive Chat Query
-```bash
-python cli.py chat "What is the system status?"
-```
+The CLI prints a JSON object with a time series unless `--output` specifies CSV. The model also accepts `--theta`, `--phi`, and `--omega`. Input outside the physically valid parameter region is rejected.
 
-### 3. Batch CSV Processing
-```bash
-python cli.py batch -i sample.csv -o results.csv
-```
+## Local HTTP API and threshold audits
 
-### 4. Verify Audit Trail Integrity
-```bash
-python cli.py verify-audit
-```
-
-### 5. Launch REST API Server
 ```bash
 python cli.py serve --host 127.0.0.1 --port 8000
 ```
 
-### Parameter Reference
-| Parameter | Description | Default |
-|:----------|:------------|:--------|
-| `--task-id` | Unique task/case identifier | TASK-2026-001 |
-| `--target` | Entity or target identifier | KEY-TARGET-01 |
-| `--primary` | Primary measurement (float) | 28.5 |
-| `--secondary` | Secondary metric (float) | 14.2 |
-| `--critical` | Emergency escalation flag | False |
-| `--status` | Status descriptor | DISCORDANT |
+Open [http://127.0.0.1:8000/web/](http://127.0.0.1:8000/web/) for the browser UI, or [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) for the API schema.
 
-### Input Data Schema (CSV Batch)
+- `POST /api/simulate`: validated physics input (`t1`, `t2`, `duration`, optional `steps`, `theta`, `phi`, `omega`), returning trajectories.
+- `POST /api/audit`: original three-worker **heuristic threshold** evaluation with HMAC-linked metadata.
+- `GET /health`, `GET /metrics`, `POST /api/chat`: existing service operations (chat uses a deterministic local placeholder, not a deployed language model).
+- `GET /api/audit/logs`: requires an `AUDIT_API_KEY` server environment variable and matching `X-Audit-Api-Key` request header; otherwise returns 403.
+- Existing command workflows are retained: `python cli.py audit ...`, `python cli.py batch -i sample.csv -o results.csv`, `python cli.py verify-audit`, and `python lindblad_decoherence_app.py audit ...`.
 
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `task_id` | Parameter / observation metric | Required |
-| `target_identifier` | Parameter / observation metric | Required |
-| `primary_metric` | Numeric primary measurement | Required |
-| `secondary_metric` | Numeric secondary measurement | Required |
-| `is_critical_flag` | Boolean critical flag | Optional |
-| `status_descriptor` | Status code or phenotype | Optional |
+Audit thresholds (25 and 12 in the main workers, 25 and 10 in the alternative Lindblad-named audit module) are application-defined heuristics, **not** quantum physical constants or validated clinical thresholds. The older `enrichment.py` module remains for compatibility: its five classes evaluate simple thresholds and do **not** implement adaptive integration or process tomography.
 
----
+## Privacy and security
 
-## 🛡️ Security & Enterprise Architecture
+The browser physics calculation is local. The API accepts JSON and retains threshold audit results and HMAC metadata **in memory**, not persistent storage. An optional `AUDIT_SECRET_KEY` environment variable sets a stable HMAC key; otherwise a random per-process key is generated. The chain now verifies the HMAC of each record, not just its predecessor pointer. The legacy identifier guard is **regex-based and incomplete**: it does not provide guaranteed de-identification, HIPAA compliance, or clinical safety. Do not send identifiable or sensitive health data. Do not expose the development service to untrusted networks without authentication, access controls, and deployment hardening.
 
-* **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation
-* **Secure Key Management:** Audit keys generated via `secrets.token_hex()` if `AUDIT_SECRET_KEY` env var not set
-* **Input Validation:** Batch processing validates file paths and numeric inputs with descriptive errors
-* **Air-Gapped LLM Reasoning Adapter:** Local Ollama, Claude, OpenAI integration with deterministic test mocks
-
----
-
-## 🧪 Testing & Verification
-
-Run the automated test suite:
+## Development, CI, and compatibility
 
 ```bash
-pytest -v
+python -m pytest -q
+node --check web/app.js
+node tests/test_web.js
 ```
 
-Execute high-throughput batch simulation benchmarks:
+GitHub Actions tests Python 3.10–3.12 plus JavaScript with Node 22. Browser functionality uses modern JavaScript, inline SVG, and Blob downloads without external libraries or fonts. The Dockerfile and Compose file run the Python API; GitHub Pages can host **only** the browser calculation and not the server endpoints. A Python-in-WebAssembly runtime is unnecessary because the same analytic solution is implemented directly in browser JavaScript.
 
-```bash
-python simulator.py 1000
-```
+## License
 
-Run Lindblad decoherence module CLI:
-
-```bash
-python lindblad_decoherence_app.py audit --task-id Q-001 --primary 29.4 --secondary 15.1
-```
-
----
-
-## 🐳 Container Deployment
-
-```bash
-# Build and run with Docker Compose (recommended)
-AUDIT_SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") docker-compose up --build
-
-# Or manual Docker build
-docker build -t qubit-decoherence-lindblad-agent .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY="your-key" qubit-decoherence-lindblad-agent
-```
-
----
-
-## 📁 Project Structure
-
-```
-qubit-decoherence-lindblad-agent/
-├── agents/                     # Core multi-agent system
-│   ├── api.py                  # FastAPI REST endpoints
-│   ├── base.py                 # Security, PHI guard, HMAC audit
-│   ├── models.py               # Pydantic data schemas
-│   ├── supervisor.py           # Orchestrator coordinator
-│   ├── workers.py              # Specialized evaluation workers
-│   ├── llm_factory.py          # LLM client abstraction
-│   ├── learning.py             # Bayesian calibration engine
-│   ├── metrics.py              # Prometheus metrics collector
-│   └── streamer.py             # WebSocket telemetry broadcaster
-├── lindblad_decoherence/       # Quantum physics module
-│   ├── engine.py               # Core algorithmic engine
-│   ├── agents.py               # Specialized sub-agents
-│   ├── models.py               # Data models
-│   ├── cli.py                  # CLI interface
-│   └── server.py               # FastAPI server factory
-├── tests/                      # Test suite
-├── web/index.html              # Operations console UI
-├── cli.py                      # Main CLI entry point
-├── lindblad_decoherence_app.py # Lindblad CLI entry point
-├── simulator.py                # High-throughput stress simulator
-├── enrichment.py               # Enrichment feature engines
-├── pyproject.toml              # Package configuration
-├── Dockerfile                  # Container definition
-└── docker-compose.yml          # Multi-service orchestration
-```
-
----
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
+[MIT](LICENSE).
